@@ -2,7 +2,6 @@
 from fractions import Fraction
 from operator import itemgetter
 import ffmpeg
-import time
 from joblib import Parallel, delayed
 import multiprocessing
 num_cores = multiprocessing.cpu_count() - 2
@@ -11,7 +10,6 @@ frate = ''
 width = ''
 height = ''
 num_frames = ''
-colors=[]
 Remove_frames = []
 Even = 1
 input_args = {
