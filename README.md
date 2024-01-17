@@ -1,5 +1,21 @@
-建議透過PR拆幀
+特別對崩3動畫設計
+崩3動畫以24幀製作，但封裝成60幀，每個場景的重複順序還不同
+導致一般方法很難移除重複幀
 
-運作方式:每5張圖一組，比較每張圖的相似度並排序，刪除一張相似度最高的圖
+運作方式:每5幀一組，比較每幀的相似度並排序，刪除一相似度最高的幀
 
-處理完成後，建議使用Hybrid encoder將圖片還原成影片
+#src 可以自訂的參數
+num_cores = 14                  #多執行序
+input_args = {
+    "hwaccel": "nvdec",         #硬體解碼
+}
+output_args = {
+    "vcodec": "hevc_nvenc",     # 使用編碼器
+    "preset": "slow",           # 編碼速度:fast,medium,slow,
+    "profile:v": "main10",      # 設置主要配置:main10
+    "pix_fmt": "p010le",        # 設置像素格式:yuv420p,p010le
+    "rc-lookahead": 16,         # 設置編碼器的預測深度
+    "cq": 15,                   # 設置CQP模式的量化參數(QP)
+}
+pipe_fmt='yuv444p'              #rgb24,yuv444p,p010le...(rgb可能導致色彩偏移)
+
