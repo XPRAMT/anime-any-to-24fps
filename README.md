@@ -3,7 +3,7 @@
 導致一般方法很難移除重複幀
 
 運作方式:每5幀一組，比較每幀的相似度並排序，刪除一相似度最高的幀
-
+<code>
 #src 可以自訂的參數
 num_cores = 14                  #多執行序
 input_args = {
@@ -18,4 +18,4 @@ output_args = {
     "cq": 15,                   # 設置CQP模式的量化參數(QP)
 }
 pipe_fmt='yuv444p'              #rgb24,yuv444p,p010le...(rgb可能導致色彩偏移)
-
+</code>
