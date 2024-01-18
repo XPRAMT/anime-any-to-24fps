@@ -124,11 +124,12 @@ def Main(process_queue,state_queue):
         state_queue.put(parameter) #返回處理狀態
         #取得輸出檔名
         path = parameter[0]
+        fileName, _ = os.path.splitext(path)
+        OutputName = f"{fileName}_fix{'.mkv'}"
+        #取得影片資訊
         print_info = False
         frate,num_frames,width,height,output_args = GetVideoInfo(path)
         print_info = True
-        fileName, _ = os.path.splitext(os.path.basename(path))
-        OutputName = f"{fileName}_fix{'.mkv'}"
         #分離影片聲音流
         input=ffmpeg.input(path,**input_args)
         video = (
