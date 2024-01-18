@@ -11,9 +11,9 @@ pip install -r requirements.txt
 <br>
 使用:
 run.bat
-輸出檔案保存在與輸入相同的資料夾
-<br>
+輸出檔案保存在與輸入相同的資料夾<br>
 可以自訂的參數:
+
 ```
 num_cores = 14                  #多執行序
 input_args = {
