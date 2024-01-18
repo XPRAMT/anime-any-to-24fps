@@ -11,8 +11,8 @@ python>=3.10
 pip install -r requirements.txt
 ```
 <br>
-使用:
-run.bat
+使用:<br>
+run.bat<br>
 輸出檔案保存在與輸入相同的資料夾<br>
 可以自訂的參數:
 
