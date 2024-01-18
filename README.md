@@ -3,7 +3,9 @@
 導致一般方法很難移除重複幀<br>
 運作方式:每5幀一組，比較每幀的相似度並排序，刪除一相似度最高的幀<br>
 
-安裝:
+安裝:<br>
+下載[ffmpeg](https://ffmpeg.org)<br>
+解壓後將 ffmpeg.exe,ffprobe.exe 放到系統路徑<br>
 python>=3.10
 ```
 pip install -r requirements.txt
