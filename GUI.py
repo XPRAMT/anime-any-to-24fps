@@ -1,10 +1,10 @@
 ﻿from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtWidgets import *
-import sys
-import src
 import threading
 import queue
+import sys
+import src
 
 class MyWindow(QWidget):
     def __init__(self):
@@ -34,6 +34,8 @@ class MyWindow(QWidget):
         self.vbox.addWidget(self.list_widget)
         # 添加清單項目
         self.list_widget.addItem('')
+        # 啟用拖放檔案
+        self.setAcceptDrops(True)
         # 更新狀態線程
         t2 = threading.Thread(target=self.updateChanged)
         t2.daemon = True
@@ -68,6 +70,21 @@ class MyWindow(QWidget):
         current_item.setText(f'{self.filePath}')
         if(self.filePath):
            src.GetVideoInfo(self.filePath)
+    # 判斷文件是否含有URL
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        mime_data = event.mimeData()
+        if mime_data.hasUrls():
+            event.acceptProposedAction()
+    # 放置檔案
+    def dropEvent(self,  event:QDropEvent):
+        mime_data = event.mimeData()
+        # 取得拖放的檔案路徑
+        if mime_data.hasUrls():
+            self.filePath = mime_data.urls()[0].toLocalFile()
+            current_item = self.list_widget.item(self.task_num)
+            current_item.setText(f'{self.filePath}')
+            #if(self.filePath):
+                #src.GetVideoInfo(self.filePath)
     # 更新狀態  
     def updateChanged(self):
         while (True):

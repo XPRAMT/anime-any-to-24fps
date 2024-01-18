@@ -1,11 +1,11 @@
-﻿import numpy as np
-from fractions import Fraction
+﻿from fractions import Fraction
 from operator import itemgetter
+import concurrent.futures
+import numpy as np
 import ffmpeg
-import os
-import threading
 import time
 import copy
+import os
 ############自訂參數############
 num_cores = 14                  #多執行序
 input_args = {
@@ -53,7 +53,7 @@ def ImageSimilarity(image1, image2):
     return degree
 
 def compare_sort_write(parameters):
-    encoder,imglist,write_frames,i2,isEnd,num_frames,Even = parameters
+    encoder,imglist,write_frames,i2,num_frames,Even = parameters
     num_list=len(write_frames)
     i1=i2-num_list*Even
     #如果不足5幀補一幀
@@ -66,7 +66,6 @@ def compare_sort_write(parameters):
     for j in range(num_list):
         s[j,0] = j
         s[j,1] = ImageSimilarity(imglist[j], imglist[j + 1])
-
     #排序
     s2 = sorted(s,key = itemgetter(1))
     s2 = np.array(s2,dtype=int)
@@ -77,8 +76,6 @@ def compare_sort_write(parameters):
     write_frames=np.array(write_frames)
     for index in write_frames:
         encoder.stdin.write(imglist[index].astype(np.uint8).tobytes())
-    if isEnd:
-        encoder.stdin.close() #關閉影片流
     #顯示狀態
     realindex = i1 + write_frames*Even
     print(f'frame:{i1}-{i2},All:{num_frames} |移除幀:{Remove_frame} |保存幀:{realindex}')
@@ -91,30 +88,33 @@ def Remove(video,encoder,width,height,num_frames,Even):#30->24
     write_frames=[]#寫入清單
     read_frame=''
     k=0
-    for i in range(2,num_frames+1):
-        #讀取圖片
-        in_bytes = video.stdout.read(width * height * 3)
-        frame = np.frombuffer(in_bytes, np.uint8)
-        #寫入圖片序列
-        if(i%Even==1):
-            write_frames.append(k)
-            imglist.append(frame)
-            read_frame=i
-            k+=1
-        #比較 排序 寫入
-        isEnd = (i==num_frames)
-        if(k==5) or isEnd:
-            parameters = encoder,imglist,write_frames,read_frame,isEnd,num_frames,Even
-            t = threading.Thread(target=compare_sort_write,args=(parameters,))
-            t.start()
-            #重置
-            if(i!=num_frames):
-                temp=imglist[5]
-                imglist=[]
-                imglist.append(temp)
-                write_frames=[]
-                k=0
-        
+    threads = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for i in range(2,num_frames+1):
+            #讀取圖片
+            in_bytes = video.stdout.read(width * height * 3)
+            frame = np.frombuffer(in_bytes, np.uint8)
+            #寫入圖片序列
+            if(i%Even==1):
+                write_frames.append(k)
+                imglist.append(frame)
+                read_frame=i
+                k+=1
+            #比較 排序 寫入
+            if(k==5) or (i==num_frames):
+                parameters = encoder,imglist,write_frames,read_frame,num_frames,Even
+                t = executor.submit(compare_sort_write, parameters)
+                threads.append(t)
+                #重置
+                if(i!=num_frames):
+                    imglist = [imglist[5]]
+                    write_frames=[]
+                    k=0
+        # 等待所有執行緒結束
+        concurrent.futures.wait(threads)
+    #關閉影片流
+    encoder.stdin.close()
+       
 ##############Main##############
 def Main(process_queue,state_queue):
     global print_info
@@ -156,7 +156,7 @@ def Main(process_queue,state_queue):
                 .run_async(pipe_stdin=True)
                 )
             Remove(video,encoder,width,height,num_frames,Even)
-            time.sleep(1)
+            time.sleep(0.5)
             print(f"處理完成! | 幀率:{frate:.3f}")
         elif(23<frate<25):
             time.sleep(0.5)
