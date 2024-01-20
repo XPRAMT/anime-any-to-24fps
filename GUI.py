@@ -3,6 +3,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtWidgets import *
 import threading
 import queue
+import time
 import sys
 import src
 
@@ -10,30 +11,64 @@ class MyWindow(QWidget):
     def __init__(self):
         super().__init__()
         #初始化變數
-        self.filePath = ""
-        self.task_num = 0
+        self.TaskList = [[0,'path']]
+        self.CurTask = 1
+        self.CurAdd = 1
+        self.isPause = False
         # 設定視窗的幾何屬性（位置和大小）
         self.setGeometry(0, 0, 600, 300)
         self.center()
         # 設定視窗的標題
         self.setWindowTitle('移除多餘幀')
+        # 建立一個垂直佈局管理器
+        self.vbox = QVBoxLayout()
+        self.vbox.setContentsMargins(5, 5, 5, 5)
+        self.setLayout(self.vbox)# 將佈局設定為視窗的主佈局
+        # 建立選擇按鈕
+        button_Sel = QPushButton('選擇檔案', self)
+        button_Sel.clicked.connect(self.selectFiles)
+        self.vbox.addWidget(button_Sel)
+        # 建立一個水平佈局管理器
+        self.hbox = QHBoxLayout()
+        hbox_container = QWidget()
+        hbox_container.setLayout(self.hbox)
+        self.hbox.setContentsMargins(0, 0, 0, 0)
+        self.vbox.addWidget(hbox_container)
+        # 建立停止按鈕
+        self.button_stop = QPushButton('停止!', self)
+        self.button_stop.clicked.connect(self.buttonStopClicked)
+        self.hbox.addWidget(self.button_stop)
+        # 建立暫停按鈕
+        self.button_pause = QPushButton('暫停', self)
+        self.button_pause.clicked.connect(self.buttonPauseClicked)
+        self.hbox.addWidget(self.button_pause)
         # 建立開始按鈕
         button_star = QPushButton('開始!', self)
         button_star.clicked.connect(self.buttonStarClicked)
-        # 建立選擇按鈕
-        button_Sel = QPushButton('選擇檔案', self)
-        button_Sel.clicked.connect(self.selectFile)
+        self.hbox.addWidget(button_star)
         # 建立任務清單
         self.list_widget = QListWidget()
-        # 建立一個垂直佈局管理器，並將按鈕新增至佈局中
-        self.vbox = QVBoxLayout()
-        #self.vbox.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.setLayout(self.vbox)# 將佈局設定為視窗的主佈局
-        self.vbox.addWidget(button_Sel)
-        self.vbox.addWidget(button_star)
         self.vbox.addWidget(self.list_widget)
-        # 添加清單項目
-        self.list_widget.addItem('')
+        # 建立一個水平佈局管理器
+        self.hbox2 = QHBoxLayout()
+        hbox_container2 = QWidget()
+        hbox_container2.setLayout(self.hbox2)
+        self.hbox2.setContentsMargins(0, 0, 0, 0)
+        self.vbox.addWidget(hbox_container2)
+        # 建立狀態顯示區
+        self.status_label = QLabel()
+        self.hbox2.addWidget(self.status_label)
+        # 建立訊息顯示區
+        self.mesg_label = QLabel()
+        self.mesg_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.hbox2.addWidget(self.mesg_label)
+        self.mesg_label.setText('請選擇或拖放檔案')
+        # 計數器
+        self.time = [0,10]
+        self.mesg_timer= QTimer()
+        def reset_mesg():
+            self.mesg_label.setText('')
+        self.mesg_timer.timeout.connect(reset_mesg)
         # 啟用拖放檔案
         self.setAcceptDrops(True)
         # 更新狀態線程
@@ -51,25 +86,53 @@ class MyWindow(QWidget):
             self.setGeometry(x, y, self.width(), self.height())
     # 開始按鈕
     def buttonStarClicked(self):
-        current_item = self.list_widget.item(self.task_num)
-        if(self.filePath):
-            self.SetText(current_item,0,self.filePath)
+        if(self.CurTask < len(self.TaskList)):
             # 放進任務序列
-            process_queue.put([self.filePath,self.task_num])
-            # 重置路徑
-            self.filePath=''
-            # 建立新的清單
-            self.task_num+=1
-            self.list_widget.addItem('')
+            for i in range(self.CurTask, len(self.TaskList)):
+                process_queue.put(self.TaskList[i])
+                self.SetText(*self.TaskList[i][:2],0)
+            self.CurTask = len(self.TaskList)
+
+            self.mesg_label.setText('開始任務!')
+            self.mesg_timer.start(2000)
         else:
-            current_item.setText('請先選擇檔案')
+            self.mesg_label.setText('請先選擇檔案')
+            self.mesg_timer.start(2000)
+    # 暫停按鈕
+    def buttonPauseClicked(self):
+        if self.isPause:# 暫停>運作
+            self.isPause = False
+            src.Pause(self.isPause)
+            self.button_pause.setText('暫停')
+            self.mesg_label.setText('已恢復')
+            self.mesg_timer.start(2000)
+        else:# 運作>暫停
+            self.isPause = True
+            src.Pause(self.isPause)
+            self.button_pause.setText('恢復')
+            self.mesg_label.setText('已暫停')
+            self.mesg_timer.stop()
+    # 停止按鈕
+    def buttonStopClicked(self):
+        self.mesg_timer.start(1000)
+        self.time.append(time.time())
+        if (self.time[-1] - self.time[-2] < 1):#快速點擊2次
+            src.Stop(process_queue,state_queue,False)
+            self.mesg_label.setText('再次點擊停止全部任務')
+            if (self.time[-1] - self.time[-3] < 2):#快速點擊3次
+                if self.isPause:
+                    self.buttonPauseClicked()
+                src.Stop(process_queue,state_queue,True)
+                self.mesg_label.setText('已停止全部任務')
+                self.mesg_timer.start(2000)
+        else:
+            self.mesg_label.setText('再次點擊停止當前任務')
+
     # 建立檔案選擇對話框
-    def selectFile(self):
-        self.filePath,_ = QFileDialog.getOpenFileName(self, 'Select File')
-        current_item = self.list_widget.item(self.task_num)
-        current_item.setText(f'{self.filePath}')
-        if(self.filePath):
-           src.GetVideoInfo(self.filePath)
+    def selectFiles(self):
+        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files')
+        for file_path in file_paths:
+            self.AddItem(file_path)
     # 判斷文件是否含有URL
     def dragEnterEvent(self, event: QDragEnterEvent):
         mime_data = event.mimeData()
@@ -80,31 +143,37 @@ class MyWindow(QWidget):
         mime_data = event.mimeData()
         # 取得拖放的檔案路徑
         if mime_data.hasUrls():
-            self.filePath = mime_data.urls()[0].toLocalFile()
-            current_item = self.list_widget.item(self.task_num)
-            current_item.setText(f'{self.filePath}')
-            #if(self.filePath):
-                #src.GetVideoInfo(self.filePath)
+            for url in mime_data.urls():
+                self.AddItem(url.toLocalFile())
+    # 添加項目
+    def AddItem(self,filePath):
+        if(filePath):
+            self.TaskList.append([self.CurAdd,filePath]) #num,path
+            self.list_widget.addItem('.'.join(map(str, self.TaskList[self.CurAdd])))
+            self.CurAdd += 1
+            print(filePath)
+
     # 更新狀態  
     def updateChanged(self):
         while (True):
             parameter = state_queue.get() # 等待狀態更新
-            self.SetText(self.list_widget.item(parameter[1]),parameter[2],parameter[0])
+            self.SetText(*parameter[:3])
     # 設定文字
-    def SetText(self,item,case,path):
+    def SetText(self,task_num,text,case):
+        if task_num!= None:
+            item = self.list_widget.item(task_num-1)
         match case:
             case 0:
-                combined_text = path + ' | 等待中...'
-                item.setText(combined_text)
+                item.setText(f'{task_num}.{text} | 等待中...')
                 item.setForeground(QColor(255, 0, 0))
             case 1:
-                combined_text = path + ' | 處理中...'
-                item.setText(combined_text)
+                item.setText(f'{task_num}.{text} | 處理中...')
                 item.setForeground(QColor(255, 255, 0))
             case 2:
-                combined_text = path + ' | 完成!'
-                item.setText(combined_text)
+                item.setText(f'{task_num}.{text} | 完成!')
                 item.setForeground(QColor(0, 200, 0))
+            case 3:
+                self.status_label.setText(text)
 
 # 當腳本作為主程式執行時
 if __name__ == '__main__':
