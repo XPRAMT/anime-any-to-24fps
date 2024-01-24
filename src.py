@@ -90,7 +90,7 @@ def compare_sort_write(parameters):
     #寫入
     write_frames=np.array(write_frames)
     for index in write_frames:
-        encoder.stdin.write(imglist[index].astype(np.uint8).tobytes())
+        encoder.stdin.write(imglist[index].astype(np.uint16).tobytes())
     #顯示狀態
     realindex = i1 + write_frames*Even
     state=[None,(f'處理幀:{i1}~{i2} in {num_frames} -[{Remove_frame}] +{realindex}'),3]
@@ -99,7 +99,7 @@ def compare_sort_write(parameters):
 def Remove(video,encoder,width,height,num_frames,Even,state_queue):#30->24
     global isStop,isPause
     in_bytes = video.stdout.read(width * height * 3)#讀取第0幀
-    img1 = np.frombuffer(in_bytes, np.uint8)
+    img1 = np.frombuffer(in_bytes, np.uint16)
     imglist=[]#圖片序列
     imglist.append(img1)
     write_frames=[]#寫入清單
@@ -116,7 +116,7 @@ def Remove(video,encoder,width,height,num_frames,Even,state_queue):#30->24
                 last_frame = True
             elif (i%Even==1):
                 #寫入圖片序列
-                frame = np.frombuffer(in_bytes, np.uint8)
+                frame = np.frombuffer(in_bytes, np.uint16)
                 write_frames.append(k)
                 imglist.append(frame)
                 read_frame=i
@@ -163,7 +163,7 @@ def Main(process_queue,state_queue):
         input=ffmpeg.input(path,**input_args)
         video = (
             input
-            .output('pipe:', format='rawvideo', pix_fmt=pipe_fmt) #, vframes=num_frames
+            .output('pipe:', format='rawvideo', pix_fmt=pipe_fmt)
             .run_async(pipe_stdout=True)
         )
         audio = input.audio

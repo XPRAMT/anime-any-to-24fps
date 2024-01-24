@@ -51,9 +51,9 @@ class MyWindow(QWidget):
         self.vbox.addWidget(self.list_widget)
         # 建立一個水平佈局管理器
         self.hbox2 = QHBoxLayout()
+        self.hbox2.setContentsMargins(0, 0, 0, 0)
         hbox_container2 = QWidget()
         hbox_container2.setLayout(self.hbox2)
-        self.hbox2.setContentsMargins(0, 0, 0, 0)
         self.vbox.addWidget(hbox_container2)
         # 建立狀態顯示區
         self.status_label = QLabel()
