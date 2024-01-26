@@ -9,11 +9,14 @@
 解壓後將 ffmpeg.exe,ffprobe.exe 放到系統路徑<br>
 python>=3.10
 ```
+git clone https://github.com/XPRAMT/anime-any-to-24fps.git
+```
+```
 pip install -r requirements.txt
 ```
 <br>
 使用:<br>
-run.bat<br>
+GUI.pyw<br>
 輸出檔案保存在與輸入相同的資料夾<br><br>
 可以自訂的參數:<br>
 
