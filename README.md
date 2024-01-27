@@ -16,7 +16,7 @@ pip install -r requirements.txt
 ```
 <br>
 使用:<br>
-GUI.pyw<br>
+run.bat<br>
 輸出檔案保存在與輸入相同的資料夾<br><br>
 可以自訂的參數:<br>
 
